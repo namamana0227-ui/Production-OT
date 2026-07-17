@@ -42,24 +42,6 @@
       if(error){alert(error.message);button.disabled=false;button.textContent='Submit OT request';return}
       document.getElementById('formCard').style.display='none';document.getElementById('success').style.display='block';
     };
-    // Sign-in starts below.
-  </script>
-  <script>
-    async function startUserLogin(){
-      let {data:{session}}=await database.auth.getSession();
-      if(!session){
-        const email=prompt('Enter your email address to sign in or create an account:');
-        if(!email)return;
-        const password=prompt('Enter your password (minimum 6 characters for a new account):');
-        if(!password)return;
-        let result=await database.auth.signInWithPassword({email,password});
-        if(result.error&&confirm('No account found. Create a new user account?'))result=await database.auth.signUp({email,password});
-        if(result.error){alert(result.error.message);return}
-        alert('Account ready. If Supabase asks you to confirm your email, confirm it first, then refresh this page.');
-        location.reload();return;
-      }
-      await loadRemoteTeams();
-    }
-    startUserLogin();
+    loadRemoteTeams();
   </script>
 </body></html>
