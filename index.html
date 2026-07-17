@@ -33,38 +33,6 @@
     window.deleteRequest=async id=>{if(!confirm('Delete this OT request?'))return;const {error}=await database.from('production_ot_requests').delete().eq('id',id);if(error){alert(error.message);return}await loadSharedData()};
     window.addWorker=async department=>{const workerName=prompt('Worker name:');if(!workerName?.trim())return;const {error}=await database.from('production_teams').insert({department,worker_name:workerName.trim()});if(error){alert(error.message);return}await loadSharedData()};
     window.removeWorker=async(department,workerName)=>{const {error}=await database.from('production_teams').delete().eq('department',department).eq('worker_name',workerName);if(error){alert(error.message);return}await loadSharedData()};
-    // Sign-in starts below.
-  </script>
-  <script>
-    async function startManagerLogin(){
-      let {data:{session}}=await database.auth.getSession();
-      if(!session){
-        const email=prompt('Enter your email address to sign in or create an account:');
-        if(!email)return;
-        const password=prompt('Enter your password (minimum 6 characters for a new account):');
-        if(!password)return;
-        let result=await database.auth.signInWithPassword({email,password});
-        if(result.error){
-          if(confirm('No account found. Create a new user account?')){
-            result=await database.auth.signUp({email,password});
-          }
-        }
-        if(result.error){alert(result.error.message);return}
-        alert('Account ready. If Supabase asks you to confirm your email, confirm it first, then refresh this page.');
-        location.reload();return;
-      }
-      const {data:adminRows}=await database.from('production_admins').select('email');
-      const isAdmin=adminRows?.some(row=>row.email.toLowerCase()===session.user.email.toLowerCase());
-      if(!isAdmin){
-        document.querySelector('[data-view="requests"]').style.display='none';
-        document.querySelector('[data-view="teams"]').style.display='none';
-        document.querySelector('.link').style.display='none';
-        document.querySelector('.help').textContent='Signed in as user: '+session.user.email;
-      }else{
-        document.querySelector('.help').textContent='Signed in as admin: '+session.user.email;
-      }
-      await loadSharedData();
-    }
-    startManagerLogin();
+    loadSharedData();
   </script>
 </body></html>
