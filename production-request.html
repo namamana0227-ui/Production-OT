@@ -38,10 +38,12 @@
       if(!workers.length){alert('Select at least one production worker.');return}
       const [requester,requesterRole]=document.getElementById('requester').value.split('|');
       const button=document.querySelector('#form button');button.disabled=true;button.textContent='Sending...';
-      const {error}=await database.from('production_ot_requests').insert({requester,requester_role:requesterRole,department:department.value,workers,reason:document.getElementById('reason').value.trim(),status:'Pending'});
+      const {error}=await database.from('production_ot_requests').insert({requester,requester_role:requesterRole,department:department.value,workers,reason:document.getElementById('reason').value.trim(),project_name:document.getElementById('projectName').value.trim(),timeline:document.getElementById('timeline').value.trim(),status:'Pending'});
       if(error){alert(error.message);button.disabled=false;button.textContent='Submit OT request';return}
       document.getElementById('formCard').style.display='none';document.getElementById('success').style.display='block';
     };
+    document.head.insertAdjacentHTML('beforeend','<style>input{border:1px solid #dba886;border-radius:7px;padding:11px;background:#fff;font:inherit;color:#54200d}</style>');
+    document.getElementById('reason').closest('.field').insertAdjacentHTML('afterend','<div class="field"><label for="projectName">Project / job name <small>(optional)</small></label><input id="projectName" placeholder="Example: Luckin KLCC signage"></div><div class="field"><label for="timeline">Timeline <small>(optional)</small></label><input id="timeline" placeholder="Example: Complete by 25 July, 8:00 pm"></div>');
     loadRemoteTeams();
   </script>
 </body></html>
