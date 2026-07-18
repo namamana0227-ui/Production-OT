@@ -19,7 +19,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const database=supabase.createClient('https://pthvibwnyvlszmprfdit.supabase.co','sb_publishable_1UBB53SrLHpMhlrquuIOkw_4WtXsdE6');
-    function toRequest(row){return {id:row.id,submittedAt:new Date(row.submitted_at).toLocaleString('en-MY'),requester:row.requester,requesterRole:row.requester_role,department:row.department,workers:row.workers||[],reason:row.reason,status:row.status}}
+    function toRequest(row){return {id:row.id,submittedAt:new Date(row.submitted_at).toLocaleString('en-MY'),requester:row.requester,requesterRole:row.requester_role,department:row.department,workers:row.workers||[],reason:row.reason,projectName:row.project_name||'',timeline:row.timeline||'',photos:row.photo_urls||[],status:row.status}}
     async function loadSharedData(){
       const [teamResult,requestResult]=await Promise.all([
         database.from('production_teams').select('*').order('department').order('worker_name'),
@@ -33,6 +33,7 @@
     window.deleteRequest=async id=>{if(!confirm('Delete this OT request?'))return;const {error}=await database.from('production_ot_requests').delete().eq('id',id);if(error){alert(error.message);return}await loadSharedData()};
     window.addWorker=async department=>{const workerName=prompt('Worker name:');if(!workerName?.trim())return;const {error}=await database.from('production_teams').insert({department,worker_name:workerName.trim()});if(error){alert(error.message);return}await loadSharedData()};
     window.removeWorker=async(department,workerName)=>{const {error}=await database.from('production_teams').delete().eq('department',department).eq('worker_name',workerName);if(error){alert(error.message);return}await loadSharedData()};
+    window.showDetails=id=>{const item=requests.find(request=>request.id===id);if(!item)return;const photos=item.photos.length?item.photos.map((url,index)=>`<a href="${url}" target="_blank"><img src="${url}" alt="Uploaded OT photo ${index+1}" style="width:110px;height:80px;object-fit:cover;border-radius:7px;border:1px solid #edc7af;margin:0 8px 8px 0"></a>`).join(''):'No photos uploaded yet.';document.getElementById('detailContent').innerHTML=`<div><label>Requested by</label><div>${safe(item.requester)} · ${safe(item.requesterRole)}</div></div><div><label>Status</label><div>${badge(item.status)}</div></div><div><label>Department</label><div>${safe(item.department)}</div></div><div><label>Submitted</label><div>${safe(item.submittedAt)}</div></div><div><label>Project / job name</label><div>${safe(item.projectName)||'—'}</div></div><div><label>Timeline</label><div>${safe(item.timeline)||'—'}</div></div><div class="full"><label>Workers going for OT</label><div>${safe(item.workers.join(', '))}</div></div><div class="full"><label>Reason for OT</label><div>${safe(item.reason)}</div></div><div class="full"><label>Completed-work photos</label><div>${photos}</div></div>`;document.getElementById('detailModal').classList.remove('hidden')};
     loadSharedData();
   </script>
 </body></html>
