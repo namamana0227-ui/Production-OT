@@ -10,7 +10,7 @@
 <body>
   <header class="bar">SIGNMASTR<small>Production OT</small></header>
   <main class="page">
-    <div class="top"><div><div class="eyebrow">Production portal</div><h1>Overtime dashboard</h1><p>View current OT requests and submit a new request.</p></div><a class="button" href="production-request.html">Open request form</a></div>
+    <div class="top"><div><div class="eyebrow">Production portal</div><h1>Overtime dashboard</h1><p>View current OT requests and submit a new request.</p></div><div><button class="button" onclick="exportDashboardCsv()">Export CSV</button> <a class="button" href="production-request.html">Open request form</a></div></div>
     <section class="metrics"><div class="metric"><label>Pending requests</label><b id="pending">0</b></div><div class="metric"><label>Approved OT</label><b id="approved">0</b></div><div class="metric"><label>Workers requested</label><b id="workers">0</b></div></section>
     <section class="card"><h2>Recent OT requests</h2><div class="table"><table><thead><tr><th>Requester</th><th>Department</th><th>Workers</th><th>Status</th><th>Take / upload photo</th><th>Photos</th></tr></thead><tbody id="rows"><tr><td colspan="6">Loading requests...</td></tr></tbody></table></div></section>
   </main>
@@ -29,10 +29,12 @@
 </style>
 <script>
   // Replace the user table: no OT reason, and phone camera support.
+  let dashboardRequests=[];
   async function loadDashboard(){
     const result=await database.from('production_ot_requests').select('*').order('submitted_at',{ascending:false});
     const data=result.data,error=result.error;
     if(error){document.getElementById('rows').innerHTML='<tr><td colspan="6" class="empty">Cannot load requests. Please refresh.</td></tr>';return;}
+    dashboardRequests=data;
     document.getElementById('pending').textContent=data.filter(item=>item.status==='Pending').length;
     document.getElementById('approved').textContent=data.filter(item=>item.status==='Approved').length;
     document.getElementById('workers').textContent=data.reduce((total,item)=>total+(item.workers||[]).length,0);
@@ -42,6 +44,12 @@
       const photoLinks=photos.length?photos.map((url,index)=>'<a href="'+url+'" target="_blank">Photo '+(index+1)+'</a>').join('<br>'):'No photos yet';
       return '<tr><td>'+safe(item.requester)+'</td><td>'+safe(item.department)+'</td><td>'+safe((item.workers||[]).join(', '))+'</td><td>'+badge(item.status)+'</td><td><label class="photo-button" for="'+inputId+'">📷 Take photo</label><input class="photo-input" id="'+inputId+'" type="file" accept="image/*" capture="environment" onchange="uploadPhotos('+item.id+',this)"></td><td>'+photoLinks+'</td></tr>';
     }).join(''):'<tr><td colspan="6" class="empty">No production OT requests yet.</td></tr>';
+  }
+  function exportDashboardCsv(){
+    const headings=['Submitted at','Requester','Department','Workers','Status','Project / job name','Timeline','Photo links'];
+    const rows=dashboardRequests.map(item=>[item.submitted_at||'',item.requester||'',item.department||'',(item.workers||[]).join(', '),item.status||'',item.project_name||'',item.timeline||'',(item.photo_urls||[]).join(' | ')]);
+    const csv=[headings,...rows].map(row=>row.map(value=>'"'+String(value).replaceAll('"','""')+'"').join(',')).join('\n');
+    const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));link.download='signmastr-production-ot.csv';link.click();URL.revokeObjectURL(link.href);
   }
   loadDashboard();
 </script>
