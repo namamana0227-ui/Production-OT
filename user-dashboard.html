@@ -12,7 +12,7 @@
   <main class="page">
     <div class="top"><div><div class="eyebrow">Production portal</div><h1>Overtime dashboard</h1><p>View current OT requests and submit a new request.</p></div><a class="button" href="production-request.html">Open request form</a></div>
     <section class="metrics"><div class="metric"><label>Pending requests</label><b id="pending">0</b></div><div class="metric"><label>Approved OT</label><b id="approved">0</b></div><div class="metric"><label>Workers requested</label><b id="workers">0</b></div></section>
-    <section class="card"><h2>Recent OT requests</h2><div class="table"><table><thead><tr><th>Requester</th><th>Department</th><th>Workers</th><th>Reason</th><th>Status</th><th>Upload photos</th><th>Details</th></tr></thead><tbody id="rows"><tr><td colspan="7">Loading requests...</td></tr></tbody></table></div></section>
+    <section class="card"><h2>Recent OT requests</h2><div class="table"><table><thead><tr><th>Requester</th><th>Department</th><th>Workers</th><th>Status</th><th>Take / upload photo</th><th>Photos</th></tr></thead><tbody id="rows"><tr><td colspan="6">Loading requests...</td></tr></tbody></table></div></section>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
@@ -23,5 +23,27 @@
     async function loadDashboard(){const {data,error}=await database.from('production_ot_requests').select('*').order('submitted_at',{ascending:false});if(error){document.getElementById('rows').innerHTML='<tr><td colspan="7" class="empty">Cannot load requests. Please refresh.</td></tr>';return}document.getElementById('pending').textContent=data.filter(item=>item.status==='Pending').length;document.getElementById('approved').textContent=data.filter(item=>item.status==='Approved').length;document.getElementById('workers').textContent=data.reduce((total,item)=>total+(item.workers||[]).length,0);document.getElementById('rows').innerHTML=data.length?data.slice(0,8).map(item=>{const photos=item.photo_urls||[];return `<tr><td>${safe(item.requester)}</td><td>${safe(item.department)}</td><td>${safe((item.workers||[]).join(', '))}</td><td>${safe(item.reason)}</td><td>${badge(item.status)}</td><td><input type="file" accept="image/*" multiple onchange="uploadPhotos(${item.id},this)"></td><td>${photos.length?photos.map((url,index)=>`<a href="${url}" target="_blank">Photo ${index+1}</a>`).join('<br>'):'No photos yet'}</td></tr>`}).join(''):'<tr><td colspan="7" class="empty">No production OT requests yet.</td></tr>'}
     loadDashboard();
   </script>
+<style>
+  .photo-input{position:absolute;width:1px;height:1px;opacity:0}
+  .photo-button{display:inline-block;background:#f7dfcf;color:#8a3515;padding:8px 10px;border-radius:6px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+</style>
+<script>
+  // Replace the user table: no OT reason, and phone camera support.
+  async function loadDashboard(){
+    const result=await database.from('production_ot_requests').select('*').order('submitted_at',{ascending:false});
+    const data=result.data,error=result.error;
+    if(error){document.getElementById('rows').innerHTML='<tr><td colspan="6" class="empty">Cannot load requests. Please refresh.</td></tr>';return;}
+    document.getElementById('pending').textContent=data.filter(item=>item.status==='Pending').length;
+    document.getElementById('approved').textContent=data.filter(item=>item.status==='Approved').length;
+    document.getElementById('workers').textContent=data.reduce((total,item)=>total+(item.workers||[]).length,0);
+    document.querySelector('.card thead').innerHTML='<tr><th>Requester</th><th>Department</th><th>Workers</th><th>Status</th><th>Take / upload photo</th><th>Photos</th></tr>';
+    document.getElementById('rows').innerHTML=data.length?data.slice(0,8).map(item=>{
+      const photos=item.photo_urls||[],inputId='photo-'+item.id;
+      const photoLinks=photos.length?photos.map((url,index)=>'<a href="'+url+'" target="_blank">Photo '+(index+1)+'</a>').join('<br>'):'No photos yet';
+      return '<tr><td>'+safe(item.requester)+'</td><td>'+safe(item.department)+'</td><td>'+safe((item.workers||[]).join(', '))+'</td><td>'+badge(item.status)+'</td><td><label class="photo-button" for="'+inputId+'">📷 Take photo</label><input class="photo-input" id="'+inputId+'" type="file" accept="image/*" capture="environment" onchange="uploadPhotos('+item.id+',this)"></td><td>'+photoLinks+'</td></tr>';
+    }).join(''):'<tr><td colspan="6" class="empty">No production OT requests yet.</td></tr>';
+  }
+  loadDashboard();
+</script>
 </body>
 </html>
