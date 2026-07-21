@@ -60,7 +60,7 @@
     const rows=requests.slice().reverse();
     document.getElementById('requestRows').innerHTML=rows.length?rows.map(item=>{
       const actions='<div class="actions"><button class="small" onclick="showDetails('+item.id+')">Details</button><button class="small" onclick="editRequest('+item.id+')">Edit</button>'+(item.status==='Pending'?'<button class="small approve" onclick="setStatus('+item.id+',\'Approved\')">Approve</button><button class="small reject" onclick="setStatus('+item.id+',\'Rejected\')">Reject</button>':'')+'<button class="small reject" onclick="deleteRequest('+item.id+')">Delete</button></div>';
-      return '<tr><td>'+safe(item.submittedAt)+'</td><td><div class="name">'+safe(item.requester)+'</div><div class="muted">'+safe(item.requesterRole)+'</div></td><td>'+safe(item.department)+'</td><td>'+safe(item.workers.join(', '))+'</td><td>'+safe(item.projectName||'—')+'</td><td>'+badge(item.status)+'</td><td>'+actions+'</td></tr>';
+      return '<tr><td>'+safe(item.submittedAt)+'</td><td>'+safe(item.otDate||'—')+'</td><td><div class="name">'+safe(item.requester)+'</div><div class="muted">'+safe(item.requesterRole)+'</div></td><td>'+safe(item.department)+'</td><td>'+safe(item.workers.join(', '))+'</td><td>'+safe(item.projectName||'—')+'</td><td>'+badge(item.status)+'</td><td>'+actions+'</td></tr>';
     }).join(''):'<tr><td colspan="8" class="empty">No production OT requests yet.</td></tr>';
   };
   window.editRequest=function(id){
@@ -91,7 +91,7 @@
     if(result.error){alert(result.error.message);button.disabled=false;button.textContent='Save changes';return;}
     closeEdit();await loadSharedData();button.disabled=false;button.textContent='Save changes';
   };
-  document.querySelector('#requests-view thead').innerHTML='<tr><th>Submitted</th><th>Requester</th><th>Department</th><th>Workers</th><th>Project / job</th><th>Status</th><th>Action</th></tr>';
+  document.querySelector('#requests-view thead').innerHTML='<tr><th>Submitted</th><th>OT date</th><th>Requester</th><th>Department</th><th>Workers</th><th>Project / job</th><th>Status</th><th>Action</th></tr>';
   loadSharedData();
 </script>
 </body></html>
