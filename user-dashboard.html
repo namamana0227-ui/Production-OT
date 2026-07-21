@@ -46,8 +46,8 @@
     }).join(''):'<tr><td colspan="6" class="empty">No production OT requests yet.</td></tr>';
   }
   function exportDashboardCsv(){
-    const headings=['Submitted at','Requester','Department','Workers','Status','Project / job name','Timeline','Photo links'];
-    const rows=dashboardRequests.map(item=>[item.submitted_at||'',item.requester||'',item.department||'',(item.workers||[]).join(', '),item.status||'',item.project_name||'',item.timeline||'',(item.photo_urls||[]).join(' | ')]);
+    const headings=['Submitted at','Requester','Department','Workers','Status','Project / job name','Project PIC','OT time','Photo links'];
+    const rows=dashboardRequests.map(item=>[item.submitted_at||'',item.requester||'',item.department||'',(item.workers||[]).join(', '),item.status||'',item.project_name||'',item.project_pic||'',item.timeline||'',(item.photo_urls||[]).join(' | ')]);
     const csv=[headings,...rows].map(row=>row.map(value=>'"'+String(value).replaceAll('"','""')+'"').join(',')).join('\n');
     const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));link.download='signmastr-production-ot.csv';link.click();URL.revokeObjectURL(link.href);
   }
