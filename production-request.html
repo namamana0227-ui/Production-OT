@@ -38,14 +38,15 @@
       if(!workers.length){alert('Select at least one production worker.');return}
       const [requester,requesterRole]=document.getElementById('requester').value.split('|');
       const button=document.querySelector('#form button');button.disabled=true;button.textContent='Sending...';
-      const otStart=document.getElementById('otStart').value,otEnd=document.getElementById('otEnd').value;
-      if(!otStart||!otEnd){alert('Please select OT start time and OT end time.');button.disabled=false;button.textContent='Submit OT request';return}
-      const {error}=await database.from('production_ot_requests').insert({requester,requester_role:requesterRole,department:department.value,workers,reason:'',project_name:document.getElementById('projectName').value.trim(),project_pic:document.getElementById('projectPic').value.trim(),timeline:otStart+' - '+otEnd,status:'Pending'});
+      const otDate=document.getElementById('otDate').value,otStart=document.getElementById('otStart').value,otEnd=document.getElementById('otEnd').value;
+      if(!otDate||!otStart||!otEnd){alert('Please select OT date, start time, and end time.');button.disabled=false;button.textContent='Submit OT request';return}
+      const {error}=await database.from('production_ot_requests').insert({requester,requester_role:requesterRole,department:department.value,workers,reason:'',ot_date:otDate,project_name:document.getElementById('projectName').value.trim(),project_pic:document.getElementById('projectPic').value.trim(),timeline:otStart+' - '+otEnd,status:'Pending'});
       if(error){alert(error.message);button.disabled=false;button.textContent='Submit OT request';return}
       document.getElementById('formCard').style.display='none';document.getElementById('success').style.display='block';
     };
     document.head.insertAdjacentHTML('beforeend','<style>input{border:1px solid #dba886;border-radius:7px;padding:11px;background:#fff;font:inherit;color:#54200d}</style>');
-    document.querySelector('#workers').closest('.field').insertAdjacentHTML('afterend','<div class="field"><label for="projectName">Project / job name <small>(optional)</small></label><input id="projectName" placeholder="Example: Luckin KLCC signage"></div><div class="field"><label for="projectPic">Project PIC <small>(optional)</small></label><input id="projectPic" placeholder="Type Project PIC name"></div><div class="field"><label for="otStart">OT start time</label><select id="otStart"></select></div><div class="field"><label for="otEnd">OT end time</label><select id="otEnd"></select></div>');
+    document.querySelector('#workers').closest('.field').insertAdjacentHTML('afterend','<div class="field"><label for="projectName">Project / job name <small>(optional)</small></label><input id="projectName" placeholder="Example: Luckin KLCC signage"></div><div class="field"><label for="projectPic">Project PIC <small>(optional)</small></label><input id="projectPic" placeholder="Type Project PIC name"></div><div class="field"><label for="otDate">OT date</label><input id="otDate" type="date"></div><div class="field"><label for="otStart">OT start time</label><select id="otStart"></select></div><div class="field"><label for="otEnd">OT end time</label><select id="otEnd"></select></div>');
+    document.getElementById('otDate').value=new Date().toISOString().slice(0,10);
     const timeOptions=['<option value="">Select time</option>'];for(let hour=0;hour<24;hour++){for(let minute=0;minute<60;minute+=30){const value=String(hour).padStart(2,'0')+':'+String(minute).padStart(2,'0');timeOptions.push('<option value="'+value+'">'+value+'</option>')}}document.getElementById('otStart').innerHTML=timeOptions.join('');document.getElementById('otEnd').innerHTML=timeOptions.join('');
     loadRemoteTeams();
   </script>
