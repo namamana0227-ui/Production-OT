@@ -56,10 +56,9 @@
 <style>.edit-input{width:100%;padding:10px;border:1px solid #dba886;border-radius:7px;background:#fff;font:inherit;color:#54200d}.edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.edit-grid label{display:grid;gap:5px;font-size:12px;font-weight:800;color:#815d4c}.edit-grid .wide{grid-column:1/-1}.edit-save{border:0;background:#b84a16;color:#fff;border-radius:7px;padding:12px;width:100%;font-weight:800;margin-top:18px;cursor:pointer}.edit-modal{position:fixed;inset:0;background:#40160688;display:grid;place-items:center;padding:18px;z-index:20}.edit-box{background:#fff4eb;border-radius:12px;padding:22px;width:min(520px,100%)}.edit-top{display:flex;justify-content:space-between;align-items:center}.edit-top h2{margin:0}.edit-close{border:0;background:#f0d5c4;border-radius:50%;width:30px;height:30px;font-size:18px;cursor:pointer}@media(max-width:560px){.edit-grid{grid-template-columns:1fr}}</style>
 <script>
   document.body.insertAdjacentHTML('beforeend','<div class="edit-modal hidden" id="userEditModal"><div class="edit-box"><div class="edit-top"><h2>Edit OT request</h2><button class="edit-close" onclick="closeUserEdit()">×</button></div><form id="userEditForm"><div class="edit-grid"><label>Requester<input class="edit-input" id="userEditRequester"></label><label>Requester role<input class="edit-input" id="userEditRole"></label><label>Department<input class="edit-input" id="userEditDepartment"></label><label>OT date<input class="edit-input" id="userEditDate" type="date"></label><label class="wide">Workers (separate names with commas)<input class="edit-input" id="userEditWorkers"></label><label>OT start time<input class="edit-input" id="userEditStart" type="time"></label><label>OT end time<input class="edit-input" id="userEditEnd" type="time"></label><label>Project / job name<input class="edit-input" id="userEditProject"></label><label>Project PIC<input class="edit-input" id="userEditPic"></label></div><button class="edit-save" id="userEditSave">Save changes</button></form></div></div>');
-  let userEditingId=null;
   window.editUserRequest=function(id){
     const item=dashboardRequests.find(request=>request.id===id);if(!item)return;
-    userEditingId=id;const times=(item.timeline||'').split(' - ');
+    document.getElementById('userEditModal').dataset.requestId=String(id);const times=(item.timeline||'').split(' - ');
     document.getElementById('userEditRequester').value=item.requester||'';
     document.getElementById('userEditRole').value=item.requester_role||'';
     document.getElementById('userEditDepartment').value=item.department||'';
@@ -77,9 +76,11 @@
     const workers=document.getElementById('userEditWorkers').value.split(',').map(name=>name.trim()).filter(Boolean);
     const date=document.getElementById('userEditDate').value,start=document.getElementById('userEditStart').value,end=document.getElementById('userEditEnd').value;
     if(!workers.length||!date||!start||!end){alert('Enter workers, OT date, start time, and end time.');return;}
+    const requestId=document.getElementById('userEditModal').dataset.requestId;
+    if(!requestId){alert('Cannot find this OT request. Close the form and press Edit again.');return;}
     const button=document.getElementById('userEditSave');button.disabled=true;button.textContent='Saving...';
     const update={requester:document.getElementById('userEditRequester').value.trim(),requester_role:document.getElementById('userEditRole').value.trim(),department:document.getElementById('userEditDepartment').value.trim(),workers,ot_date:date,timeline:start+' - '+end,project_name:document.getElementById('userEditProject').value.trim(),project_pic:document.getElementById('userEditPic').value.trim()};
-    const result=await database.from('production_ot_requests').update(update).eq('id',userEditingId);
+    const result=await database.from('production_ot_requests').update(update).eq('id',requestId);
     if(result.error){alert(result.error.message);button.disabled=false;button.textContent='Save changes';return;}
     closeUserEdit();await loadDashboard();button.disabled=false;button.textContent='Save changes';
   };
