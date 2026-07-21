@@ -19,7 +19,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const database=supabase.createClient('https://pthvibwnyvlszmprfdit.supabase.co','sb_publishable_1UBB53SrLHpMhlrquuIOkw_4WtXsdE6');
-    function toRequest(row){return {id:row.id,submittedAt:new Date(row.submitted_at).toLocaleString('en-MY'),requester:row.requester,requesterRole:row.requester_role,department:row.department,workers:row.workers||[],reason:row.reason,projectName:row.project_name||'',projectPic:row.project_pic||'',timeline:row.timeline||'',photos:row.photo_urls||[],status:row.status}}
+    function toRequest(row){return {id:row.id,submittedAt:new Date(row.submitted_at).toLocaleString('en-MY'),otDate:row.ot_date||'',requester:row.requester,requesterRole:row.requester_role,department:row.department,workers:row.workers||[],reason:row.reason,projectName:row.project_name||'',projectPic:row.project_pic||'',timeline:row.timeline||'',photos:row.photo_urls||[],status:row.status}}
     async function loadSharedData(){
       const [teamResult,requestResult]=await Promise.all([
         database.from('production_teams').select('*').order('department').order('worker_name'),
@@ -33,7 +33,7 @@
     window.deleteRequest=async id=>{if(!confirm('Delete this OT request?'))return;const {error}=await database.from('production_ot_requests').delete().eq('id',id);if(error){alert(error.message);return}await loadSharedData()};
     window.addWorker=async department=>{const workerName=prompt('Worker name:');if(!workerName?.trim())return;const {error}=await database.from('production_teams').insert({department,worker_name:workerName.trim()});if(error){alert(error.message);return}await loadSharedData()};
     window.removeWorker=async(department,workerName)=>{const {error}=await database.from('production_teams').delete().eq('department',department).eq('worker_name',workerName);if(error){alert(error.message);return}await loadSharedData()};
-    window.showDetails=id=>{const item=requests.find(request=>request.id===id);if(!item)return;const photos=item.photos.length?item.photos.map((url,index)=>`<a href="${url}" target="_blank"><img src="${url}" alt="Uploaded OT photo ${index+1}" style="width:110px;height:80px;object-fit:cover;border-radius:7px;border:1px solid #edc7af;margin:0 8px 8px 0"></a>`).join(''):'No photos uploaded yet.';document.getElementById('detailContent').innerHTML=`<div><label>Requested by</label><div>${safe(item.requester)} · ${safe(item.requesterRole)}</div></div><div><label>Status</label><div>${badge(item.status)}</div></div><div><label>Department</label><div>${safe(item.department)}</div></div><div><label>Submitted</label><div>${safe(item.submittedAt)}</div></div><div><label>Project / job name</label><div>${safe(item.projectName)||'—'}</div></div><div><label>Project PIC</label><div>${safe(item.projectPic)||'—'}</div></div><div><label>OT time</label><div>${safe(item.timeline)||'—'}</div></div><div class="full"><label>Workers going for OT</label><div>${safe(item.workers.join(', '))}</div></div><div class="full"><label>Completed-work photos</label><div>${photos}</div></div>`;document.getElementById('detailModal').classList.remove('hidden')};
+    window.showDetails=id=>{const item=requests.find(request=>request.id===id);if(!item)return;const photos=item.photos.length?item.photos.map((url,index)=>`<a href="${url}" target="_blank"><img src="${url}" alt="Uploaded OT photo ${index+1}" style="width:110px;height:80px;object-fit:cover;border-radius:7px;border:1px solid #edc7af;margin:0 8px 8px 0"></a>`).join(''):'No photos uploaded yet.';document.getElementById('detailContent').innerHTML=`<div><label>Requested by</label><div>${safe(item.requester)} · ${safe(item.requesterRole)}</div></div><div><label>Status</label><div>${badge(item.status)}</div></div><div><label>OT date</label><div>${safe(item.otDate)||'—'}</div></div><div><label>Department</label><div>${safe(item.department)}</div></div><div><label>Submitted</label><div>${safe(item.submittedAt)}</div></div><div><label>Project / job name</label><div>${safe(item.projectName)||'—'}</div></div><div><label>Project PIC</label><div>${safe(item.projectPic)||'—'}</div></div><div><label>OT time</label><div>${safe(item.timeline)||'—'}</div></div><div class="full"><label>Workers going for OT</label><div>${safe(item.workers.join(', '))}</div></div><div class="full"><label>Completed-work photos</label><div>${photos}</div></div>`;document.getElementById('detailModal').classList.remove('hidden')};
     loadSharedData();
   </script>
 <style>
@@ -52,4 +52,46 @@
     .metric { min-width:130px; }
   }
 </style>
+<script>
+  document.head.insertAdjacentHTML('beforeend','<style>.edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:17px}.edit-grid label{display:grid;gap:5px;font-size:12px;font-weight:800;color:#815d4c}.edit-grid input,.edit-grid select{width:100%;padding:10px;border:1px solid #dba886;border-radius:7px;background:#fff;font:inherit;color:#54200d}.edit-grid .wide{grid-column:1/-1}@media(max-width:560px){.edit-grid{grid-template-columns:1fr}}</style>');
+  document.body.insertAdjacentHTML('beforeend','<div class="modal-wrap hidden" id="editModal"><div class="modal"><div class="modal-top"><h2>Edit OT request</h2><button class="close" onclick="closeEdit()">×</button></div><form id="editForm"><div class="edit-grid"><label>Requester<input id="editRequester"></label><label>Requester role<input id="editRequesterRole"></label><label>Department<input id="editDepartment"></label><label>Status<select id="editStatus"><option>Pending</option><option>Approved</option><option>Rejected</option></select></label><label class="wide">Workers (separate names with commas)<input id="editWorkers"></label><label>OT date<input id="editDate" type="date"></label><label>OT start time<input id="editStart" type="time"></label><label>OT end time<input id="editEnd" type="time"></label><label>Project / job name<input id="editProject"></label><label>Project PIC<input id="editPic"></label></div><button class="primary" id="saveEdit">Save changes</button></form></div></div>');
+  let editingRequestId=null;
+  renderRequests=function(){
+    const rows=requests.slice().reverse();
+    document.getElementById('requestRows').innerHTML=rows.length?rows.map(item=>{
+      const actions='<div class="actions"><button class="small" onclick="showDetails('+item.id+')">Details</button><button class="small" onclick="editRequest('+item.id+')">Edit</button>'+(item.status==='Pending'?'<button class="small approve" onclick="setStatus('+item.id+',\'Approved\')">Approve</button><button class="small reject" onclick="setStatus('+item.id+',\'Rejected\')">Reject</button>':'')+'<button class="small reject" onclick="deleteRequest('+item.id+')">Delete</button></div>';
+      return '<tr><td>'+safe(item.submittedAt)+'</td><td><div class="name">'+safe(item.requester)+'</div><div class="muted">'+safe(item.requesterRole)+'</div></td><td>'+safe(item.department)+'</td><td>'+safe(item.workers.join(', '))+'</td><td>'+safe(item.projectName||'—')+'</td><td>'+badge(item.status)+'</td><td>'+actions+'</td></tr>';
+    }).join(''):'<tr><td colspan="8" class="empty">No production OT requests yet.</td></tr>';
+  };
+  window.editRequest=function(id){
+    const item=requests.find(request=>request.id===id);if(!item)return;
+    editingRequestId=id;
+    const times=(item.timeline||'').split(' - ');
+    document.getElementById('editRequester').value=item.requester||'';
+    document.getElementById('editRequesterRole').value=item.requesterRole||'';
+    document.getElementById('editDepartment').value=item.department||'';
+    document.getElementById('editWorkers').value=(item.workers||[]).join(', ');
+    document.getElementById('editDate').value=item.otDate||'';
+    document.getElementById('editStart').value=times[0]||'';
+    document.getElementById('editEnd').value=times[1]||'';
+    document.getElementById('editProject').value=item.projectName||'';
+    document.getElementById('editPic').value=item.projectPic||'';
+    document.getElementById('editStatus').value=item.status||'Pending';
+    document.getElementById('editModal').classList.remove('hidden');
+  };
+  window.closeEdit=function(){document.getElementById('editModal').classList.add('hidden');};
+  document.getElementById('editForm').onsubmit=async function(event){
+    event.preventDefault();
+    const workers=document.getElementById('editWorkers').value.split(',').map(name=>name.trim()).filter(Boolean);
+    const date=document.getElementById('editDate').value,start=document.getElementById('editStart').value,end=document.getElementById('editEnd').value;
+    if(!workers.length||!date||!start||!end){alert('Enter workers, OT date, start time, and end time.');return;}
+    const button=document.getElementById('saveEdit');button.disabled=true;button.textContent='Saving...';
+    const update={requester:document.getElementById('editRequester').value.trim(),requester_role:document.getElementById('editRequesterRole').value.trim(),department:document.getElementById('editDepartment').value.trim(),workers,ot_date:date,timeline:start+' - '+end,project_name:document.getElementById('editProject').value.trim(),project_pic:document.getElementById('editPic').value.trim(),status:document.getElementById('editStatus').value};
+    const result=await database.from('production_ot_requests').update(update).eq('id',editingRequestId);
+    if(result.error){alert(result.error.message);button.disabled=false;button.textContent='Save changes';return;}
+    closeEdit();await loadSharedData();button.disabled=false;button.textContent='Save changes';
+  };
+  document.querySelector('#requests-view thead').innerHTML='<tr><th>Submitted</th><th>Requester</th><th>Department</th><th>Workers</th><th>Project / job</th><th>Status</th><th>Action</th></tr>';
+  loadSharedData();
+</script>
 </body></html>
