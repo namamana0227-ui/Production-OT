@@ -25,7 +25,7 @@
   </script>
 <style>
   .photo-input{position:absolute;width:1px;height:1px;opacity:0}
-  .photo-button{display:inline-block;background:#f7dfcf;color:#8a3515;padding:8px 10px;border-radius:6px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+  .photo-button{display:inline-block;background:#f7dfcf;color:#8a3515;padding:8px 10px;border-radius:6px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}.gallery-button{margin-left:4px;background:#253746;color:#fff}
 </style>
 <script>
   // Replace the user table: no OT reason, and phone camera support.
@@ -42,7 +42,7 @@
     document.getElementById('rows').innerHTML=data.length?data.slice(0,8).map(item=>{
       const photos=item.photo_urls||[],inputId='photo-'+item.id;
       const photoLinks=photos.length?photos.map((url,index)=>'<a href="'+url+'" target="_blank">Photo '+(index+1)+'</a>').join('<br>'):'No photos yet';
-      return '<tr><td>'+safe(item.requester)+'</td><td>'+safe(item.department)+'</td><td>'+safe((item.workers||[]).join(', '))+'</td><td>'+badge(item.status)+'</td><td><label class="photo-button" for="'+inputId+'">📷 Take photo</label><input class="photo-input" id="'+inputId+'" type="file" accept="image/*" capture="environment" onchange="uploadPhotos('+item.id+',this)"></td><td>'+photoLinks+'</td></tr>';
+      return '<tr><td>'+safe(item.requester)+'</td><td>'+safe(item.department)+'</td><td>'+safe((item.workers||[]).join(', '))+'</td><td>'+badge(item.status)+'</td><td><label class="photo-button" for="'+inputId+'-camera">📷 Take photo</label><input class="photo-input" id="'+inputId+'-camera" type="file" accept="image/*" capture="environment" onchange="uploadPhotos('+item.id+',this)"><label class="photo-button gallery-button" for="'+inputId+'-gallery">🖼 Upload photo</label><input class="photo-input" id="'+inputId+'-gallery" type="file" accept="image/*" onchange="uploadPhotos('+item.id+',this)"></td><td>'+photoLinks+'</td></tr>';
     }).join(''):'<tr><td colspan="6" class="empty">No production OT requests yet.</td></tr>';
   }
   function exportDashboardCsv(){
@@ -90,9 +90,13 @@
     if(error){document.getElementById('rows').innerHTML='<tr><td colspan="7" class="empty">Cannot load requests. Please refresh.</td></tr>';return;}
     dashboardRequests=data;document.getElementById('pending').textContent=data.filter(item=>item.status==='Pending').length;document.getElementById('approved').textContent=data.filter(item=>item.status==='Approved').length;document.getElementById('workers').textContent=data.reduce((total,item)=>total+(item.workers||[]).length,0);
     document.querySelector('.card thead').innerHTML='<tr><th>Requester</th><th>Department</th><th>Workers</th><th>Status</th><th>Take / upload photo</th><th>Photos</th><th>Edit details</th></tr>';
-    document.getElementById('rows').innerHTML=data.length?data.map(item=>{const photos=item.photo_urls||[],inputId='photo-'+item.id,photoLinks=photos.length?photos.map((url,index)=>'<a href="'+url+'" target="_blank">Photo '+(index+1)+'</a>').join('<br>'):'No photos yet';return '<tr><td>'+safe(item.requester)+'</td><td>'+safe(item.department)+'</td><td>'+safe((item.workers||[]).join(', '))+'</td><td>'+badge(item.status)+'</td><td><label class="photo-button" for="'+inputId+'">📷 Take photo</label><input class="photo-input" id="'+inputId+'" type="file" accept="image/*" capture="environment" onchange="uploadPhotos('+item.id+',this)"></td><td>'+photoLinks+'</td><td><button class="photo-button" onclick="editUserRequest('+item.id+')">Edit</button></td></tr>';}).join(''):'<tr><td colspan="7" class="empty">No production OT requests yet.</td></tr>';
+    document.getElementById('rows').innerHTML=data.length?data.map(item=>{const photos=item.photo_urls||[],inputId='photo-'+item.id,photoLinks=photos.length?photos.map((url,index)=>'<a href="'+url+'" target="_blank">Photo '+(index+1)+'</a>').join('<br>'):'No photos yet';return '<tr><td>'+safe(item.requester)+'</td><td>'+safe(item.department)+'</td><td>'+safe((item.workers||[]).join(', '))+'</td><td>'+badge(item.status)+'</td><td><label class="photo-button" for="'+inputId+'-camera">📷 Take photo</label><input class="photo-input" id="'+inputId+'-camera" type="file" accept="image/*" capture="environment" onchange="uploadPhotos('+item.id+',this)"><label class="photo-button gallery-button" for="'+inputId+'-gallery">🖼 Upload photo</label><input class="photo-input" id="'+inputId+'-gallery" type="file" accept="image/*" onchange="uploadPhotos('+item.id+',this)"></td><td>'+photoLinks+'</td><td><button class="photo-button" onclick="editUserRequest('+item.id+')">Edit</button></td></tr>';}).join(''):'<tr><td colspan="7" class="empty">No production OT requests yet.</td></tr>';
   };
   loadDashboard();
 </script>
+<style>
+  body{background:#fff0d8}.bar{background:#f89521!important;color:#253746!important}.bar small{color:#253746!important}.button,.edit-save{background:#f89521!important}.signmastr-logo{display:block;width:150px;height:auto;background:#fff;border-radius:6px;padding:4px}
+</style>
+<script>document.querySelector('.bar').innerHTML='<img class="signmastr-logo" src="signmastr-logo.png" alt="SIGNMASTR"><small>Production OT</small>';</script>
 </body>
 </html>
