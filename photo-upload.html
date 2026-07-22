@@ -11,13 +11,14 @@
 <body>
   <header class="bar">SIGNMASTR<small>OT PHOTO UPLOAD</small></header>
   <main class="page">
-    <section class="card"><h1>Upload completed-work photo</h1><p>Choose the correct OT job, then tap <b>Take photo</b>. Your phone camera will open.</p><div class="notice">Upload photos only for work you have completed. Each photo must be smaller than 5 MB.</div></section>
+    <section class="card"><h1>Upload completed-work photo</h1><p>Choose the OT date first, then find the correct job and upload your photo.</p><div class="notice">Upload photos only for work you have completed. Each photo must be smaller than 5 MB.</div><div class="date-filter"><label for="jobDate">OT date</label><input id="jobDate" type="date" onchange="loadJobs()"></div></section>
     <div id="jobs"><section class="card empty">Loading OT jobs...</section></div>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const database=supabase.createClient('https://pthvibwnyvlszmprfdit.supabase.co','sb_publishable_1UBB53SrLHpMhlrquuIOkw_4WtXsdE6');
     const safe=value=>{const node=document.createElement('div');node.textContent=value||'';return node.innerHTML};
+    document.getElementById('jobDate').value=new Date().toISOString().slice(0,10);
     async function uploadPhoto(id,input){
       const file=input.files[0];if(!file)return;
       if(!file.type.startsWith('image/')){alert('Please select an image file.');return;}
@@ -34,18 +35,21 @@
       alert('Photo uploaded successfully.');loadJobs();
     }
     async function loadJobs(){
-      const {data,error}=await database.from('production_ot_requests').select('*').neq('status','Rejected').order('submitted_at',{ascending:false});
+      const selectedDate=document.getElementById('jobDate').value;
+      let query=database.from('production_ot_requests').select('*').neq('status','Rejected').order('submitted_at',{ascending:false});
+      if(selectedDate)query=query.eq('ot_date',selectedDate);
+      const {data,error}=await query;
       if(error){document.getElementById('jobs').innerHTML='<section class="card empty">Cannot load OT jobs. Please refresh.</section>';return;}
       document.getElementById('jobs').innerHTML=data.length?data.map(item=>{
         const id='photo-'+item.id,project=item.project_name||'No project name',date=item.ot_date||'OT date not set',time=item.timeline||'OT time not set',photos=(item.photo_urls||[]).length;
         return '<section class="card"><div class="job"><div><h2>'+safe(project)+'</h2><div class="info"><b>OT date:</b> '+safe(date)+'<br><b>Department:</b> '+safe(item.department)+'<br><b>Workers:</b> '+safe((item.workers||[]).join(', '))+'<br><b>OT time:</b> '+safe(time)+'<br><span class="muted">'+photos+' photo(s) uploaded</span></div></div><div><label class="photo-button" for="'+id+'-camera">📷 Take photo</label><input class="photo-input" id="'+id+'-camera" type="file" accept="image/*" capture="environment" onchange="uploadPhoto('+item.id+',this)"><label class="photo-button gallery-button" for="'+id+'-gallery">🖼 Upload photo</label><input class="photo-input" id="'+id+'-gallery" type="file" accept="image/*" onchange="uploadPhoto('+item.id+',this)"></div></div></section>';
-      }).join(''):'<section class="card empty">No active OT jobs found.</section>';
+      }).join(''):'<section class="card empty">No active OT jobs found for the selected date.</section>';
     }
     loadJobs();
   </script>
 <style>
   :root{--orange:#f89521;--deep:#253746;--paper:#fffaf3;--line:#f4c98f}
-  body{background:#fff0d8}.bar{background:#f89521!important;color:#253746!important}.bar small{color:#253746!important}.photo-button{background:#f89521!important;margin:0 0 8px}.gallery-button{background:#253746!important}.signmastr-logo{display:block;width:150px;height:auto;background:#fff;border-radius:6px;padding:4px}
+  body{background:#fff0d8}.bar{background:#f89521!important;color:#253746!important}.bar small{color:#253746!important}.photo-button{background:#f89521!important;margin:0 0 8px}.gallery-button{background:#253746!important}.signmastr-logo{display:block;width:150px;height:auto;background:#fff;border-radius:6px;padding:4px}.date-filter{display:grid;gap:6px;max-width:260px;font-size:13px;font-weight:800}.date-filter input{padding:10px;border:1px solid var(--line);border-radius:7px;font:inherit;background:#fff}
 </style>
 <script>document.querySelector('.bar').innerHTML='<img class="signmastr-logo" src="signmastr-logo.png" alt="SIGNMASTR"><small>OT PHOTO UPLOAD</small>';</script>
 </body>
