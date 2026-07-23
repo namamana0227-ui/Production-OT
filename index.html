@@ -94,4 +94,29 @@
   document.querySelector('#requests-view thead').innerHTML='<tr><th>Submitted</th><th>OT date</th><th>Requester</th><th>Department</th><th>Workers</th><th>Project / job</th><th>Status</th><th>Action</th></tr>';
   loadSharedData();
 </script>
+<script>
+  document.head.insertAdjacentHTML('beforeend','<style>.team-worker{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid #f0dfd2;font-size:13px}.team-worker:last-child{border-bottom:0}.station-name{font-size:11px;color:#815d4c;margin-top:3px}.station-button{font-size:11px;padding:6px 8px;white-space:nowrap}</style>');
+  let teamStations={};
+  const stationKey=(department,worker)=>department+'|'+worker;
+  renderTeams=function(){
+    document.getElementById('teamGrid').innerHTML=Object.entries(teams).map(([department,workers])=>{const dep=safe(encodeURIComponent(department));return '<div class="card team-card"><h3>'+safe(department)+'</h3><div>'+ (workers.length?workers.map(worker=>{const station=teamStations[stationKey(department,worker)]||'Not set',name=safe(encodeURIComponent(worker));return '<div class="team-worker"><div><div class="name">'+safe(worker)+'</div><div class="station-name">Station / Machine: '+safe(station)+'</div></div><div><button class="small station-button" data-team-action="station" data-department="'+dep+'" data-worker="'+name+'">Set station</button> <button class="close" style="width:20px;height:20px;font-size:13px" data-team-action="remove" data-department="'+dep+'" data-worker="'+name+'">×</button></div></div>'}).join(''):'<span class="empty">No workers added.</span>')+'</div><button class="small" style="margin-top:14px" data-team-action="add" data-department="'+dep+'">+ Add worker</button></div>'}).join('');
+  };
+  document.getElementById('teamGrid').onclick=event=>{const button=event.target.closest('[data-team-action]');if(!button)return;const department=decodeURIComponent(button.dataset.department),worker=button.dataset.worker?decodeURIComponent(button.dataset.worker):'';if(button.dataset.teamAction==='station')setStation(department,worker);if(button.dataset.teamAction==='remove')removeWorker(department,worker);if(button.dataset.teamAction==='add')addWorker(department);};
+  loadSharedData=async function(){
+    const [teamResult,requestResult]=await Promise.all([database.from('production_teams').select('*').order('department').order('worker_name'),database.from('production_ot_requests').select('*').order('submitted_at')]);
+    if(teamResult.error||requestResult.error){alert('Cannot load shared database. Please check the internet connection.');return;}
+    teams={};teamStations={};
+    teamResult.data.forEach(row=>{(teams[row.department]??=[]).push(row.worker_name);teamStations[stationKey(row.department,row.worker_name)]=row.station_name||'';});
+    if(!teamResult.data.length)teams=JSON.parse(JSON.stringify(defaultTeams));
+    requests=requestResult.data.map(toRequest);renderAll();
+  };
+  window.addWorker=async function(department){const workerName=prompt('Worker name:');if(!workerName?.trim())return;const stationName=prompt('Station / machine name (optional):')||'';const result=await database.from('production_teams').insert({department,worker_name:workerName.trim(),station_name:stationName.trim()});if(result.error){alert(result.error.message);return;}await loadSharedData();};
+  window.setStation=async function(department,workerName){const current=teamStations[stationKey(department,workerName)]||'';const stationName=prompt('Station / machine name for '+workerName+':',current);if(stationName===null)return;const result=await database.from('production_teams').update({station_name:stationName.trim()}).eq('department',department).eq('worker_name',workerName);if(result.error){alert(result.error.message);return;}await loadSharedData();};
+  loadSharedData();
+</script>
+<style>
+  :root{--orange:#f89521;--deep:#253746;--paper:#fffaf3;--line:#f4c98f}
+  body{background:#fff3df}.app aside{background:#f89521}.nav button,.link{color:#253746}.nav button:hover,.nav button.active,.link:hover{background:#d97706;color:#fff}.help{border-color:#d97706;color:#253746}.primary{background:#f89521}.signmastr-logo{display:block;width:155px;height:auto;background:#fff;border-radius:6px;padding:5px}
+</style>
+<script>document.querySelector('.brand').innerHTML='<img class="signmastr-logo" src="signmastr-logo.png" alt="SIGNMASTR"><small>Production OT</small>';</script>
 </body></html>
