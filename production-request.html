@@ -21,9 +21,10 @@
     const database=supabase.createClient('https://pthvibwnyvlszmprfdit.supabase.co','sb_publishable_1UBB53SrLHpMhlrquuIOkw_4WtXsdE6');
     let remoteTeams={};
     async function loadRemoteTeams(){
-      const {data,error}=await database.from('production_teams').select('*').order('department').order('worker_name');
-      if(error){alert('Cannot load worker names. Please check the internet connection.');return}
-      remoteTeams=JSON.parse(JSON.stringify(defaultTeams));data.forEach(row=>{(remoteTeams[row.department]??=[]).push(row.worker_name)});
+      const [teamResult,departmentResult]=await Promise.all([database.from('production_teams').select('*').order('department').order('worker_name'),database.from('production_departments').select('*').order('department')]);
+      if(teamResult.error||departmentResult.error){alert('Cannot load production teams. Please refresh after the team setup is run.');return}
+      const departmentNames=[...new Set([...Object.keys(defaultTeams),...departmentResult.data.map(row=>row.department),...teamResult.data.map(row=>row.department)])];
+      remoteTeams=Object.fromEntries(departmentNames.map(name=>[name,[]]));teamResult.data.forEach(row=>{remoteTeams[row.department].push(row.worker_name)});
       department.innerHTML=Object.keys(remoteTeams).map(name=>`<option>${esc(name)}</option>`).join('');
       renderRemoteWorkers();
     }
@@ -50,4 +51,9 @@
     const timeOptions=['<option value="">Select time</option>'];for(let hour=0;hour<24;hour++){for(let minute=0;minute<60;minute+=30){const value=String(hour).padStart(2,'0')+':'+String(minute).padStart(2,'0');timeOptions.push('<option value="'+value+'">'+value+'</option>')}}document.getElementById('otStart').innerHTML=timeOptions.join('');document.getElementById('otEnd').innerHTML=timeOptions.join('');
     loadRemoteTeams();
   </script>
+<style>
+  :root{--orange:#f89521;--deep:#253746;--paper:#fffaf3;--line:#f4c98f}
+  body{background:#fff0d8}.bar{display:flex;align-items:center;gap:12px;background:#f89521!important;color:#253746!important}.signmastr-logo{width:145px;height:auto;background:#fff;border-radius:6px;padding:4px}.brand-title{font-size:15px;font-weight:800}
+</style>
+<script>document.querySelector('.bar').innerHTML='<img class="signmastr-logo" src="signmastr-logo.png" alt="SIGNMASTR"><span class="brand-title">Production OT</span>';</script>
 </body></html>
