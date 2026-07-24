@@ -53,11 +53,24 @@
   }
   loadDashboard();
 </script>
-<style>.hidden{display:none!important}.edit-input{width:100%;padding:10px;border:1px solid #dba886;border-radius:7px;background:#fff;font:inherit;color:#54200d}.edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.edit-grid label{display:grid;gap:5px;font-size:12px;font-weight:800;color:#815d4c}.edit-grid .wide{grid-column:1/-1}.edit-save{border:0;background:#b84a16;color:#fff;border-radius:7px;padding:12px;width:100%;font-weight:800;margin-top:18px;cursor:pointer}.edit-modal{position:fixed;inset:0;background:#40160688;display:grid;place-items:center;padding:18px;z-index:20}.edit-box{background:#fff4eb;border-radius:12px;padding:22px;width:min(520px,100%)}.edit-top{display:flex;justify-content:space-between;align-items:center}.edit-top h2{margin:0}.edit-close{border:0;background:#f0d5c4;border-radius:50%;width:30px;height:30px;font-size:18px;cursor:pointer}@media(max-width:560px){.edit-grid{grid-template-columns:1fr}}</style>
+<style>.hidden{display:none!important}.edit-input{width:100%;padding:10px;border:1px solid #dba886;border-radius:7px;background:#fff;font:inherit;color:#54200d}.edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.edit-grid label{display:grid;gap:5px;font-size:12px;font-weight:800;color:#815d4c}.edit-grid .wide{grid-column:1/-1}.edit-save{border:0;background:#b84a16;color:#fff;border-radius:7px;padding:12px;width:100%;font-weight:800;margin-top:18px;cursor:pointer}.edit-modal{position:fixed;inset:0;background:#40160688;display:grid;place-items:center;padding:18px;z-index:20}.edit-box{background:#fff4eb;border-radius:12px;padding:22px;width:min(520px,100%);max-height:calc(100vh - 36px);overflow:auto}.edit-top{display:flex;justify-content:space-between;align-items:center}.edit-top h2{margin:0}.edit-close{border:0;background:#f0d5c4;border-radius:50%;width:30px;height:30px;font-size:18px;cursor:pointer}.team-picker{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;border:1px solid #edc7af;background:#fff;padding:10px;border-radius:7px}.team-picker label{display:flex;align-items:center;gap:6px;font-size:12px;color:#54200d}.photo-actions{display:flex;gap:5px;flex-wrap:wrap;margin:5px 0}.photo-action{border:0;border-radius:5px;padding:5px 7px;font-size:11px;font-weight:800;cursor:pointer;background:#f7dfcf;color:#8a3515}.photo-delete{background:#fae4e2;color:#a22c24}@media(max-width:560px){.edit-grid,.team-picker{grid-template-columns:1fr}}</style>
 <script>
-  document.body.insertAdjacentHTML('beforeend','<div class="edit-modal hidden" id="userEditModal"><div class="edit-box"><div class="edit-top"><h2>Edit OT request</h2><button class="edit-close" onclick="closeUserEdit()">×</button></div><form id="userEditForm"><div class="edit-grid"><label>Requester<input class="edit-input" id="userEditRequester"></label><label>Requester role<input class="edit-input" id="userEditRole"></label><label>Department<input class="edit-input" id="userEditDepartment"></label><label>OT date<input class="edit-input" id="userEditDate" type="date"></label><label class="wide">Workers (separate names with commas)<input class="edit-input" id="userEditWorkers"></label><label>OT start time<input class="edit-input" id="userEditStart" type="time"></label><label>OT end time<input class="edit-input" id="userEditEnd" type="time"></label><label>Project / job name<input class="edit-input" id="userEditProject"></label><label>Project PIC<input class="edit-input" id="userEditPic"></label></div><button class="edit-save" id="userEditSave">Save changes</button></form></div></div>');
-  window.editUserRequest=function(id){
+  document.body.insertAdjacentHTML('beforeend','<div class="edit-modal hidden" id="userEditModal"><div class="edit-box"><div class="edit-top"><h2>Edit OT request</h2><button class="edit-close" onclick="closeUserEdit()">×</button></div><form id="userEditForm"><div class="edit-grid"><label>Requester<input class="edit-input" id="userEditRequester"></label><label>Requester role<input class="edit-input" id="userEditRole"></label><label>Department<input class="edit-input" id="userEditDepartment"></label><label>OT date<input class="edit-input" id="userEditDate" type="date"></label><label class="wide">Production team — tick workers going for OT<div class="team-picker" id="userEditTeam"></div></label><label class="wide">Workers (you can also type names, separated with commas)<input class="edit-input" id="userEditWorkers"></label><label>OT start time<input class="edit-input" id="userEditStart" type="time"></label><label>OT end time<input class="edit-input" id="userEditEnd" type="time"></label><label>Project / job name<input class="edit-input" id="userEditProject"></label><label>Project PIC<input class="edit-input" id="userEditPic"></label></div><button class="edit-save" id="userEditSave">Save changes</button></form></div></div>');
+  let productionTeamMembers=[];
+  async function loadProductionTeamMembers(){
+    const result=await database.from('production_teams').select('department,worker_name').order('worker_name');
+    if(!result.error)productionTeamMembers=result.data||[];
+  }
+  function renderUserEditTeam(department,selectedWorkers){
+    const workers=productionTeamMembers.filter(member=>member.department===department).map(member=>member.worker_name);
+    const names=[...new Set([...workers,...selectedWorkers])];
+    const picker=document.getElementById('userEditTeam');
+    picker.innerHTML=names.length?names.map(name=>'<label><input class="user-edit-worker-choice" type="checkbox" value="'+safe(name)+'"'+(selectedWorkers.includes(name)?' checked':'')+'> '+safe(name)+'</label>').join(''):'<span class="empty">No saved team for this department. Type worker names below.</span>';
+    picker.querySelectorAll('.user-edit-worker-choice').forEach(input=>input.onchange=()=>{document.getElementById('userEditWorkers').value=[...picker.querySelectorAll('.user-edit-worker-choice:checked')].map(choice=>choice.value).join(', ');});
+  }
+  window.editUserRequest=async function(id){
     const item=dashboardRequests.find(request=>request.id===id);if(!item)return;
+    await loadProductionTeamMembers();
     document.getElementById('userEditModal').dataset.requestId=String(id);const times=(item.timeline||'').split(' - ');
     document.getElementById('userEditRequester').value=item.requester||'';
     document.getElementById('userEditRole').value=item.requester_role||'';
@@ -68,9 +81,11 @@
     document.getElementById('userEditEnd').value=times[1]||'';
     document.getElementById('userEditProject').value=item.project_name||'';
     document.getElementById('userEditPic').value=item.project_pic||'';
+    renderUserEditTeam(item.department||'',item.workers||[]);
     document.getElementById('userEditModal').classList.remove('hidden');
   };
   window.closeUserEdit=function(){document.getElementById('userEditModal').classList.add('hidden');};
+  document.getElementById('userEditDepartment').onchange=function(){renderUserEditTeam(this.value,document.getElementById('userEditWorkers').value.split(',').map(name=>name.trim()).filter(Boolean));};
   document.getElementById('userEditForm').onsubmit=async function(event){
     event.preventDefault();
     const workers=document.getElementById('userEditWorkers').value.split(',').map(name=>name.trim()).filter(Boolean);
@@ -84,13 +99,39 @@
     if(result.error){alert(result.error.message);button.disabled=false;button.textContent='Save changes';return;}
     closeUserEdit();await loadDashboard();button.disabled=false;button.textContent='Save changes';
   };
+  const photoStoragePath=url=>{const marker='/storage/v1/object/public/production-ot-photos/';const position=String(url||'').indexOf(marker);return position===-1?'':decodeURIComponent(String(url).slice(position+marker.length));};
+  async function uploadReplacementPhoto(requestId,file){
+    if(!file||!file.type.startsWith('image/'))throw new Error('Please select an image file.');
+    if(file.size>5*1024*1024)throw new Error('Each photo must be smaller than 5 MB.');
+    const fileName=requestId+'/'+Date.now()+'-'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const upload=await database.storage.from('production-ot-photos').upload(fileName,file);
+    if(upload.error)throw upload.error;
+    return database.storage.from('production-ot-photos').getPublicUrl(fileName).data.publicUrl;
+  }
+  window.replaceUserPhoto=async function(requestId,index,input){
+    const file=input.files&&input.files[0];if(!file)return;
+    const request=dashboardRequests.find(item=>item.id===requestId);if(!request)return;
+    try{
+      const newUrl=await uploadReplacementPhoto(requestId,file),urls=[...(request.photo_urls||[])],oldUrl=urls[index];urls[index]=newUrl;
+      const result=await database.from('production_ot_requests').update({photo_urls:urls}).eq('id',requestId);if(result.error)throw result.error;
+      const oldPath=photoStoragePath(oldUrl);if(oldPath)await database.storage.from('production-ot-photos').remove([oldPath]);
+      await loadDashboard();
+    }catch(error){alert(error.message||'Cannot replace photo.');}finally{input.value='';}
+  };
+  window.deleteUserPhoto=async function(requestId,index){
+    const request=dashboardRequests.find(item=>item.id===requestId);if(!request||!confirm('Delete this photo?'))return;
+    const urls=[...(request.photo_urls||[])],oldUrl=urls[index];urls.splice(index,1);
+    const result=await database.from('production_ot_requests').update({photo_urls:urls}).eq('id',requestId);if(result.error){alert(result.error.message);return;}
+    const oldPath=photoStoragePath(oldUrl);if(oldPath)await database.storage.from('production-ot-photos').remove([oldPath]);
+    await loadDashboard();
+  };
   loadDashboard=async function(){
     const result=await database.from('production_ot_requests').select('*').order('submitted_at',{ascending:false});
     const data=result.data,error=result.error;
     if(error){document.getElementById('rows').innerHTML='<tr><td colspan="7" class="empty">Cannot load requests. Please refresh.</td></tr>';return;}
     dashboardRequests=data;document.getElementById('pending').textContent=data.filter(item=>item.status==='Pending').length;document.getElementById('approved').textContent=data.filter(item=>item.status==='Approved').length;document.getElementById('workers').textContent=data.reduce((total,item)=>total+(item.workers||[]).length,0);
     document.querySelector('.card thead').innerHTML='<tr><th>Requester</th><th>Department</th><th>Workers</th><th>Status</th><th>Take / upload photo</th><th>Photos</th><th>Edit details</th></tr>';
-    document.getElementById('rows').innerHTML=data.length?data.map(item=>{const photos=item.photo_urls||[],inputId='photo-'+item.id,photoLinks=photos.length?photos.map((url,index)=>'<a href="'+url+'" target="_blank">Photo '+(index+1)+'</a>').join('<br>'):'No photos yet';return '<tr><td>'+safe(item.requester)+'</td><td>'+safe(item.department)+'</td><td>'+safe((item.workers||[]).join(', '))+'</td><td>'+badge(item.status)+'</td><td><label class="photo-button" for="'+inputId+'-camera">📷 Take photo</label><input class="photo-input" id="'+inputId+'-camera" type="file" accept="image/*" capture="environment" onchange="uploadPhotos('+item.id+',this)"><label class="photo-button gallery-button" for="'+inputId+'-gallery">🖼 Upload photo</label><input class="photo-input" id="'+inputId+'-gallery" type="file" accept="image/*" onchange="uploadPhotos('+item.id+',this)"></td><td>'+photoLinks+'</td><td><button class="photo-button" onclick="editUserRequest('+item.id+')">Edit</button></td></tr>';}).join(''):'<tr><td colspan="7" class="empty">No production OT requests yet.</td></tr>';
+    document.getElementById('rows').innerHTML=data.length?data.map(item=>{const photos=item.photo_urls||[],inputId='photo-'+item.id,photoLinks=photos.length?photos.map((url,index)=>'<div><a href="'+url+'" target="_blank">Photo '+(index+1)+'</a><div class="photo-actions"><label class="photo-action" for="'+inputId+'-replace-'+index+'">Replace</label><input class="photo-input" id="'+inputId+'-replace-'+index+'" type="file" accept="image/*" capture="environment" onchange="replaceUserPhoto('+item.id+','+index+',this)"><button class="photo-action photo-delete" onclick="deleteUserPhoto('+item.id+','+index+')">Delete</button></div></div>').join(''):'No photos yet';return '<tr><td>'+safe(item.requester)+'</td><td>'+safe(item.department)+'</td><td>'+safe((item.workers||[]).join(', '))+'</td><td>'+badge(item.status)+'</td><td><label class="photo-button" for="'+inputId+'-camera">📷 Take photo</label><input class="photo-input" id="'+inputId+'-camera" type="file" accept="image/*" capture="environment" onchange="uploadPhotos('+item.id+',this)"><label class="photo-button gallery-button" for="'+inputId+'-gallery">🖼 Upload photo</label><input class="photo-input" id="'+inputId+'-gallery" type="file" accept="image/*" onchange="uploadPhotos('+item.id+',this)"></td><td>'+photoLinks+'</td><td><button class="photo-button" onclick="editUserRequest('+item.id+')">Edit</button></td></tr>';}).join(''):'<tr><td colspan="7" class="empty">No production OT requests yet.</td></tr>';
   };
   loadDashboard();
 </script>
