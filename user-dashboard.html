@@ -10,7 +10,7 @@
 <body>
   <header class="bar">SIGNMASTR<small>Production OT</small></header>
   <main class="page">
-    <div class="top"><div><div class="eyebrow">Production portal</div><h1>Overtime dashboard</h1><p>View current OT requests and submit a new request.</p></div><div><input id="exportDate" type="date" aria-label="Choose OT date to export" style="padding:9px;border:1px solid #dba886;border-radius:7px;font:inherit"> <button class="button" onclick="exportDashboardCsv()">Export CSV</button> <button class="button" onclick="openUserTeamManager()">Manage production team</button> <a class="button" href="production-request.html">Open request form</a></div></div>
+    <div class="top"><div><div class="eyebrow">Production portal</div><h1>Overtime dashboard</h1><p>View current OT requests and submit a new request.</p></div><div><input id="exportFromDate" type="date" aria-label="Export OT from date" style="padding:9px;border:1px solid #dba886;border-radius:7px;font:inherit"> <input id="exportToDate" type="date" aria-label="Export OT to date" style="padding:9px;border:1px solid #dba886;border-radius:7px;font:inherit"> <button class="button" onclick="exportDashboardCsv()">Export CSV</button> <button class="button" onclick="openUserTeamManager()">Manage production team</button> <a class="button" href="production-request.html">Open request form</a></div></div>
     <section class="metrics"><div class="metric"><label>Pending requests</label><b id="pending">0</b></div><div class="metric"><label>Approved OT</label><b id="approved">0</b></div><div class="metric"><label>Workers requested</label><b id="workers">0</b></div></section>
     <section class="card"><h2>Recent OT requests</h2><div class="table"><table><thead><tr><th>Requester</th><th>Department</th><th>Workers</th><th>Status</th><th>Take / upload photo</th><th>Photos</th></tr></thead><tbody id="rows"><tr><td colspan="6">Loading requests...</td></tr></tbody></table></div></section>
   </main>
@@ -46,14 +46,15 @@
     }).join(''):'<tr><td colspan="6" class="empty">No production OT requests yet.</td></tr>';
   }
   function exportDashboardCsv(){
-    const selectedDate=document.getElementById('exportDate').value;
-    if(!selectedDate){alert('Please choose an OT date to export.');return;}
-    const selectedRequests=dashboardRequests.filter(item=>item.ot_date===selectedDate);
-    if(!selectedRequests.length){alert('No OT requests found for the selected date.');return;}
+    const fromDate=document.getElementById('exportFromDate').value,toDate=document.getElementById('exportToDate').value;
+    if(!fromDate||!toDate){alert('Please choose both From date and To date.');return;}
+    if(fromDate>toDate){alert('From date cannot be later than To date.');return;}
+    const selectedRequests=dashboardRequests.filter(item=>item.ot_date>=fromDate&&item.ot_date<=toDate);
+    if(!selectedRequests.length){alert('No OT requests found for the selected date range.');return;}
     const headings=['Submitted at','OT date','Requester','Department','Workers','Status','Project / job name','Project PIC','OT time','Photo links'];
     const rows=selectedRequests.map(item=>[item.submitted_at||'',item.ot_date||'',item.requester||'',item.department||'',(item.workers||[]).join(', '),item.status||'',item.project_name||'',item.project_pic||'',item.timeline||'',(item.photo_urls||[]).join(' | ')]);
     const csv=[headings,...rows].map(row=>row.map(value=>'"'+String(value).replaceAll('"','""')+'"').join(',')).join('\n');
-    const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));link.download='signmastr-production-ot-'+selectedDate+'.csv';link.click();URL.revokeObjectURL(link.href);
+    const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));link.download='signmastr-production-ot-'+fromDate+'-to-'+toDate+'.csv';link.click();URL.revokeObjectURL(link.href);
   }
   loadDashboard();
 </script>
