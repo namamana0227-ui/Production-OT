@@ -43,6 +43,8 @@
       if(!otDate||!otStart||!otEnd){alert('Please select OT date, start time, and end time.');button.disabled=false;button.textContent='Submit OT request';return}
       const {error}=await database.from('production_ot_requests').insert({requester,requester_role:requesterRole,department:department.value,workers,reason:'',ot_date:otDate,project_name:document.getElementById('projectName').value.trim(),project_pic:document.getElementById('projectPic').value.trim(),timeline:otStart+' - '+otEnd,status:'Pending'});
       if(error){alert(error.message);button.disabled=false;button.textContent='Submit OT request';return}
+      const notification=await database.functions.invoke('send-production-ot-notification',{body:{requester,department:department.value,workers,otDate,projectName:document.getElementById('projectName').value.trim()}});
+      if(notification.error)console.warn('Manager notification was not sent:',notification.error.message);
       document.getElementById('formCard').style.display='none';document.getElementById('success').style.display='block';
     };
     document.head.insertAdjacentHTML('beforeend','<style>input{border:1px solid #dba886;border-radius:7px;padding:11px;background:#fff;font:inherit;color:#54200d}</style>');
