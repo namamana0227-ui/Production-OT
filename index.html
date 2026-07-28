@@ -122,10 +122,16 @@
   const reportTime=value=>{if(!value)return '';const [hour,minute]=value.split(':').map(Number);const suffix=hour>=12?'PM':'AM',displayHour=hour%12||12;return displayHour+':'+String(minute).padStart(2,'0')+' '+suffix;};
   const reportDuration=timeline=>{const [start,end]=String(timeline||'').split(' - ');if(!start||!end)return '';const [startHour,startMinute]=start.split(':').map(Number),[endHour,endMinute]=end.split(':').map(Number);let minutes=endHour*60+endMinute-(startHour*60+startMinute);if(minutes<0)minutes+=24*60;return Math.floor(minutes/60)+' hr '+String(minutes%60).padStart(2,'0')+' min';};
   const reportHours=timeline=>{const [start,end]=String(timeline||'').split(' - ');if(!start||!end)return '';const [startHour,startMinute]=start.split(':').map(Number),[endHour,endMinute]=end.split(':').map(Number);let minutes=endHour*60+endMinute-(startHour*60+startMinute);if(minutes<0)minutes+=24*60;return Math.round((minutes/60)*100)/100;};
+  const exportButton=document.querySelector('button[onclick="exportCsv()"]');
+  if(exportButton&&!document.getElementById('exportDate')){const input=document.createElement('input');input.id='exportDate';input.type='date';input.value=new Date().toISOString().slice(0,10);input.title='Choose OT date to export';input.style.cssText='margin-right:8px;padding:8px;border:1px solid #f0cda9;border-radius:7px;font:inherit';exportButton.before(input);}
   window.exportCsv=function(){
     if(typeof XLSX==='undefined'){alert('Excel export is still loading. Please wait a moment and try again.');return;}
+    const selectedDate=document.getElementById('exportDate').value;
+    if(!selectedDate){alert('Please choose an OT date to export.');return;}
+    const selectedRequests=requests.filter(item=>item.otDate===selectedDate);
+    if(!selectedRequests.length){alert('No OT requests found for the selected date.');return;}
     const headings=['DATE','TIME START','TIME END','SALES PERSON','JOB NAME','WORKER NAME','TOTAL USING TIME','OT HOURS'];
-    const dataRows=requests.map(item=>{const [start,end]=String(item.timeline||'').split(' - ');return [reportDate(item.otDate),reportTime(start),reportTime(end),item.projectPic||'',item.projectName||'',(item.workers||[]).join(', '),reportDuration(item.timeline),reportHours(item.timeline)];});
+    const dataRows=selectedRequests.map(item=>{const [start,end]=String(item.timeline||'').split(' - ');return [reportDate(item.otDate),reportTime(start),reportTime(end),item.projectPic||'',item.projectName||'',(item.workers||[]).join(', '),reportDuration(item.timeline),reportHours(item.timeline)];});
     const sheet=XLSX.utils.aoa_to_sheet([['OVERTIME JOB DETAILS'],['Production overtime job report'],headings,...dataRows]);
     sheet['!merges']=[XLSX.utils.decode_range('A1:H1'),XLSX.utils.decode_range('A2:H2')];
     sheet['!cols']=[{wch:14},{wch:14},{wch:14},{wch:22},{wch:34},{wch:38},{wch:20},{wch:12}];
@@ -134,7 +140,7 @@
     for(let column=0;column<8;column++){const titleCell=XLSX.utils.encode_cell({r:0,c:column}),noteCell=XLSX.utils.encode_cell({r:1,c:column}),headerCell=XLSX.utils.encode_cell({r:2,c:column});if(sheet[titleCell])sheet[titleCell].s={font:{bold:true,sz:16,color:{rgb:'253746'}},fill:{fgColor:{rgb:'F89521'}},alignment:{horizontal:'center',vertical:'center'}};if(sheet[noteCell])sheet[noteCell].s={font:{italic:true,color:{rgb:'6D6259'}},fill:{fgColor:{rgb:'FFF3DF'}},alignment:{horizontal:'center',vertical:'center'}};if(sheet[headerCell])sheet[headerCell].s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'253746'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border};}
     for(let row=3;row<3+dataRows.length;row++){for(let column=0;column<8;column++){const cell=sheet[XLSX.utils.encode_cell({r:row,c:column})];if(cell)cell.s={alignment:{vertical:'top',wrapText:true},border,fill:{fgColor:{rgb:row%2?'FFF9F2':'FFFFFF'}}};}const hoursCell=sheet[XLSX.utils.encode_cell({r:row,c:7})];if(hoursCell)hoursCell.z='0.00';}
     sheet['!autofilter']={ref:'A3:H'+Math.max(3,dataRows.length+3)};
-    const workbook=XLSX.utils.book_new();XLSX.utils.book_append_sheet(workbook,sheet,'OT Production');XLSX.writeFile(workbook,'OT production report.xlsx');
+    const workbook=XLSX.utils.book_new();XLSX.utils.book_append_sheet(workbook,sheet,'OT Production');XLSX.writeFile(workbook,'OT production report '+selectedDate+'.xlsx');
   };
 </script>
 <style>
