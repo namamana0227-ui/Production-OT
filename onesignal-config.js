@@ -1,0 +1,1 @@
+window.SIGNMASTR_ONESIGNAL_APP_ID = '4e2cf1e0-c306-4dcc-b79f-9ae0a033dc10';
