@@ -130,16 +130,15 @@
     if(!selectedDate){alert('Please choose an OT date to export.');return;}
     const selectedRequests=requests.filter(item=>item.otDate===selectedDate);
     if(!selectedRequests.length){alert('No OT requests found for the selected date.');return;}
-    const headings=['DATE','TIME START','TIME END','SALES PERSON','JOB NAME','WORKER NAME','TOTAL USING TIME','OT HOURS'];
-    const dataRows=selectedRequests.map(item=>{const [start,end]=String(item.timeline||'').split(' - ');return [reportDate(item.otDate),reportTime(start),reportTime(end),item.projectPic||'',item.projectName||'',(item.workers||[]).join(', '),reportDuration(item.timeline),reportHours(item.timeline)];});
-    const sheet=XLSX.utils.aoa_to_sheet([['OVERTIME JOB DETAILS'],['Production overtime job report'],headings,...dataRows]);
-    sheet['!merges']=[XLSX.utils.decode_range('A1:H1'),XLSX.utils.decode_range('A2:H2')];
-    sheet['!cols']=[{wch:14},{wch:14},{wch:14},{wch:22},{wch:34},{wch:38},{wch:20},{wch:12}];
-    sheet['!rows']=[{hpt:28},{hpt:20},{hpt:22}];
+    const headings=['DATE','TIME START','TIME END','SALES PERSON','JOB NAME','WORKER NAME','TOTAL USING TIME'];
+    const dataRows=selectedRequests.map(item=>{const [start,end]=String(item.timeline||'').split(' - ');return [reportDate(item.otDate),reportTime(start),reportTime(end),item.projectPic||'',item.projectName||'',(item.workers||[]).join(', '),reportDuration(item.timeline)];});
+    const sheet=XLSX.utils.aoa_to_sheet([headings,...dataRows]);
+    sheet['!cols']=[{wch:14},{wch:14},{wch:14},{wch:22},{wch:34},{wch:38},{wch:20}];
+    sheet['!rows']=[{hpt:22}];
     const border={top:{style:'thin',color:{rgb:'E8C59E'}},bottom:{style:'thin',color:{rgb:'E8C59E'}},left:{style:'thin',color:{rgb:'E8C59E'}},right:{style:'thin',color:{rgb:'E8C59E'}}};
-    for(let column=0;column<8;column++){const titleCell=XLSX.utils.encode_cell({r:0,c:column}),noteCell=XLSX.utils.encode_cell({r:1,c:column}),headerCell=XLSX.utils.encode_cell({r:2,c:column});if(sheet[titleCell])sheet[titleCell].s={font:{bold:true,sz:16,color:{rgb:'253746'}},fill:{fgColor:{rgb:'F89521'}},alignment:{horizontal:'center',vertical:'center'}};if(sheet[noteCell])sheet[noteCell].s={font:{italic:true,color:{rgb:'6D6259'}},fill:{fgColor:{rgb:'FFF3DF'}},alignment:{horizontal:'center',vertical:'center'}};if(sheet[headerCell])sheet[headerCell].s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'253746'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border};}
-    for(let row=3;row<3+dataRows.length;row++){for(let column=0;column<8;column++){const cell=sheet[XLSX.utils.encode_cell({r:row,c:column})];if(cell)cell.s={alignment:{vertical:'top',wrapText:true},border,fill:{fgColor:{rgb:row%2?'FFF9F2':'FFFFFF'}}};}const hoursCell=sheet[XLSX.utils.encode_cell({r:row,c:7})];if(hoursCell)hoursCell.z='0.00';}
-    sheet['!autofilter']={ref:'A3:H'+Math.max(3,dataRows.length+3)};
+    for(let column=0;column<7;column++){const headerCell=XLSX.utils.encode_cell({r:0,c:column});if(sheet[headerCell])sheet[headerCell].s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'F89521'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border};}
+    for(let row=1;row<1+dataRows.length;row++){for(let column=0;column<7;column++){const cell=sheet[XLSX.utils.encode_cell({r:row,c:column})];if(cell)cell.s={alignment:{vertical:'top',wrapText:true},border,fill:{fgColor:{rgb:row%2?'FFF9F2':'FFFFFF'}}};}}
+    sheet['!autofilter']={ref:'A1:G'+Math.max(1,dataRows.length+1)};
     const workbook=XLSX.utils.book_new();XLSX.utils.book_append_sheet(workbook,sheet,'OT Production');XLSX.writeFile(workbook,'OT production report '+selectedDate+'.xlsx');
   };
 </script>
