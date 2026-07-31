@@ -50,7 +50,7 @@
     const fromDate=document.getElementById('exportFromDate').value,toDate=document.getElementById('exportToDate').value;
     if(!fromDate||!toDate){alert('Please choose both From date and To date.');return;}
     if(fromDate>toDate){alert('From date cannot be later than To date.');return;}
-    const selectedRequests=dashboardRequests.filter(item=>item.ot_date>=fromDate&&item.ot_date<=toDate);
+    const selectedRequests=dashboardRequests.filter(item=>item.ot_date>=fromDate&&item.ot_date<=toDate).sort((first,second)=>(String(first.ot_date||'').localeCompare(String(second.ot_date||''))||String(first.timeline||'').localeCompare(String(second.timeline||''))));
     if(!selectedRequests.length){alert('No OT requests found for the selected date range.');return;}
     if(typeof XLSX==='undefined'){alert('Excel export is still loading. Please wait a moment and try again.');return;}
     const formatDate=value=>{const parts=String(value||'').split('-');return parts.length===3?parts[2]+'-'+parts[1]+'-'+parts[0]:'';};
