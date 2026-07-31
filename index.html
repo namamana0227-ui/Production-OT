@@ -128,7 +128,7 @@
     if(typeof XLSX==='undefined'){alert('Excel export is still loading. Please wait a moment and try again.');return;}
     const selectedDate=document.getElementById('exportDate').value;
     if(!selectedDate){alert('Please choose an OT date to export.');return;}
-    const selectedRequests=requests.filter(item=>item.otDate===selectedDate);
+    const selectedRequests=requests.filter(item=>item.otDate===selectedDate).sort((first,second)=>String(first.timeline||'').localeCompare(String(second.timeline||'')));
     if(!selectedRequests.length){alert('No OT requests found for the selected date.');return;}
     const headings=['DATE','TIME START','TIME END','SALES PERSON','JOB NAME','WORKER NAME','TOTAL USING TIME'];
     const dataRows=selectedRequests.map(item=>{const [start,end]=String(item.timeline||'').split(' - ');return [reportDate(item.otDate),reportTime(start),reportTime(end),item.projectPic||'',item.projectName||'',(item.workers||[]).join(', '),reportDuration(item.timeline)];});
