@@ -18,7 +18,7 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    const database=supabase.createClient('https://pthvibwnyvlszmprfdit.supabase.co','sb_publishable_1UBB53SrLHpMhlrquuIOkw_4WtXsdE6');
+    const database=supabase.createClient('https://hqexvzjxeifkhkjxvumh.supabase.co','sb_publishable_4_o3A3la9zCIHJDvNihhxA_-Ka5Luv8');
     let remoteTeams={};
     async function loadRemoteTeams(){
       const [teamResult,departmentResult]=await Promise.all([database.from('production_teams').select('*').order('department').order('worker_name'),database.from('production_departments').select('*').order('department')]);
